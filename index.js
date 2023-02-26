@@ -143,10 +143,11 @@ bot.on('callback_query', (query) => {
   if (query.data === 'getSequence') {
     (async () => {
       try {
-        const img = await generateSequence();
+        const imgPath = await generateSequence();
+        const image = fs.createReadStream(imgPath);
         bot.sendPhoto(
           chatId,
-          img,
+          image,
           {
             reply_markup: {
               inline_keyboard: [
