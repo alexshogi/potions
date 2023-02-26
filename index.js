@@ -1,10 +1,15 @@
 const fs = require('fs');
-const FormData = require('form-data');
-const nanoid = require('nanoid');
-const axios = require('axios');
+const crypto = require('crypto');
+const ImageKit = require('imagekit');
 const TelegramBot = require('node-telegram-bot-api');
 const path = require('path');
 const { loadImage, createCanvas, registerFont } = require('canvas');
+
+const imagekit = new ImageKit({
+  publicKey : 'public_vv9fDwLAn+t7d6+Swu447nLgnGk=',
+  privateKey : 'private_cVsoGVYZRkPsPnpKdwj6kzG3gx0=',
+  urlEndpoint : 'https://ik.imagekit.io/8sjtul9r9'
+});
 
 const cards = require('./cards.json');
 
@@ -76,7 +81,7 @@ const generateSequence = async () => {
   const context = canvas.getContext('2d');
 
   context.fillRect(0, 0, width, height);
-  loadImage('./images/sequence.jpeg').then((data) => {
+  await loadImage('./images/sequence.jpeg').then((data) => {
     context.drawImage(data, 0, 0, width, height);
 
     context.font = 'bold 44pt LunchBoxSlab';
@@ -106,25 +111,25 @@ const generateSequence = async () => {
       y += lines.length * lineheight;
       y += space;
     }
-
-    const imgBuffer = canvas.toBuffer('image/jpeg');
-
-    const id = nanoid();
-
-    fs.writeFileSync(`./sequences/${id}.jpeg`, imgBuffer);
-
-    const form = new FormData();
-    form.append('file', fs.createReadStream('./sequences/${id}.jpeg'));
-
-    const request_config = {
-      headers: {
-        'Authorization': `Bearer ${'rere'}`,
-        ...form.getHeaders()
-      }
-    };
-
-    return axios.post(url, form, request_config);
   })
+
+  // const dataURL = canvas.toDataURL();
+  const imgBuffer = canvas.toBuffer('image/jpeg');
+
+  const id = crypto.randomUUID();
+  const imagePath = `./sequences/${id}.jpeg`;
+
+  fs.writeFileSync(imagePath, imgBuffer);
+
+  const data = fs.readFileSync(imagePath);
+
+  const res = await imagekit.upload({
+    file: data,
+    fileName: `${id}.jpeg`
+  });
+
+  console.log(res);
+  return res.url;
 }
 
 
@@ -159,8 +164,7 @@ bot.on('callback_query', (query) => {
   if (query.data === 'getSequence') {
     (async () => {
       try {
-        const imgPath = await generateSequence();
-        const image = fs.createReadStream(imgPath);
+        const image = await generateSequence();
         bot.sendPhoto(
           chatId,
           image,
