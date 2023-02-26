@@ -1,4 +1,7 @@
 const fs = require('fs');
+const FormData = require('form-data');
+const nanoid = require('nanoid');
+const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
 const path = require('path');
 const { loadImage, createCanvas, registerFont } = require('canvas');
@@ -105,9 +108,22 @@ const generateSequence = async () => {
     }
 
     const imgBuffer = canvas.toBuffer('image/jpeg');
-    fs.writeFileSync('./sequences/test.jpeg', imgBuffer);
 
-    return './sequences/test.jpeg';
+    const id = nanoid();
+
+    fs.writeFileSync(`./sequences/${id}.jpeg`, imgBuffer);
+
+    const form = new FormData();
+    form.append('file', fs.createReadStream('./sequences/${id}.jpeg'));
+
+    const request_config = {
+      headers: {
+        'Authorization': `Bearer ${'rere'}`,
+        ...form.getHeaders()
+      }
+    };
+
+    return axios.post(url, form, request_config);
   })
 }
 
